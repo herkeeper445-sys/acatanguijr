@@ -132,7 +132,7 @@ export default function Home() {
   const phone = '+63 938 911 4841';
   const phoneHref = 'tel:+639389114841';
   const linkedin = 'https://www.linkedin.com/in/ananias-jr-catangui-7b424a129';
-  const resumeHref = '/Ananias-Jr-Catangui-Resume.pdf';
+  const resumeHref = '/resume';
 
   const dots = useMemo(
     () =>
@@ -224,7 +224,7 @@ export default function Home() {
           </p>
           <div className="hero-actions">
             <a className="button primary" href="#work">Explore my work <ArrowIcon /></a>
-            <a className="button ghost" href={resumeHref} target="_blank" rel="noreferrer">View resume</a>
+            <a className="button ghost" href={resumeHref}>View resume</a>
             <a className="button ghost" href={linkedin} target="_blank" rel="noreferrer"><LinkedInIcon /> LinkedIn</a>
           </div>
           <div className="hero-meta">
@@ -389,7 +389,7 @@ export default function Home() {
 
           <div className="contact-actions">
             <a className="button light" href={`mailto:${email}?subject=Virtual%20Assistant%20Opportunity`}>Email me <ArrowIcon /></a>
-            <a className="button ghost" href={resumeHref} target="_blank" rel="noreferrer">View resume</a>
+            <a className="button ghost" href={resumeHref}>View resume</a>
             <button className="email-chip" type="button" onClick={copyEmail}>{copied ? 'Copied!' : 'Copy email'}</button>
           </div>
         </div>
