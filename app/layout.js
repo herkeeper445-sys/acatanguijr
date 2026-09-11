@@ -1,5 +1,6 @@
 import './globals.css';
 import './portrait-particles.css';
+import './portfolio-v2.css';
 
 export const metadata = {
   title: 'Ananias Jr. D. Catangui | General Administrative Virtual Assistant',
