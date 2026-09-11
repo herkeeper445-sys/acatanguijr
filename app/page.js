@@ -2,344 +2,77 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-const services = [
-  ['Administrative Support', 'Day-to-day task support, organized follow-through, and dependable assistance for busy teams.'],
-  ['Data Entry', 'Accurate spreadsheet updates, records organization, cleanup, and structured information handling.'],
-  ['Email & Calendar', 'Inbox organization, scheduling support, reminders, and calendar maintenance.'],
-  ['File Management', 'Logical naming, folder organization, document handling, and easy-to-find records.'],
-  ['Internet Research', 'Focused online research, information gathering, comparison, and clean summaries.'],
-  ['Customer Support', 'Professional, respectful support backed by real-world customer-facing experience.'],
+const samples = [
+  {title:'Email & Inbox Management',category:'Administrative Support',label:'SELF-CREATED PRACTICE',tools:['Gmail','Email Management','Written Communication'],columns:['From','Subject','Priority','Action'],rows:[['Jamie Cruz','Confirm Friday meeting','High','Confirm + invite'],['Billing Team','Software invoice','Medium','Save + log'],['Mika Santos','Spreadsheet question','High','Reply + deadline'],['Newsletter','Weekly digest','Low','Archive']],note:'Labels: Action Required • Waiting for Reply • Finance • Clients • Internal • Newsletters • Archive'},
+  {title:'Calendar & Meeting Scheduling',category:'Calendar Management',label:'SELF-CREATED PRACTICE',tools:['Google Calendar','Scheduling','Planning'],columns:['Time','Mon','Tue','Wed','Thu','Fri'],rows:[['9:00','Inbox','Leads','Inbox','Client call','Inbox'],['10:00','Team mtg','Data entry','Research','Calendar','Report'],['1:00','CRM','Expenses','Minutes','Invoices','Backup'],['3:00','Research','Replies','Follow-up','Replies','Review']],note:'Check conflicts • Include timezone • Add reminders • Update changes promptly'},
+  {title:'Meeting Agenda & Minutes',category:'Documentation',label:'SELF-CREATED PRACTICE',tools:['Google Docs','Meeting Notes','Action Tracking'],columns:['Discussion','Decision / Action','Owner','Due'],rows:[['Drive naming','Use YYYY-MM_Client_Project','VA','Aug 30'],['Lead follow-up','Send short follow-ups','VA','Aug 29'],['Weekly report','Use standard template','Lead','Sep 1']],note:'Agenda: Open tasks • Lead status • Upcoming deadlines • Questions / blockers'},
+  {title:'Internet Research Report',category:'Research',label:'SELF-CREATED PRACTICE',tools:['Web Research','Comparison','Source Tracking'],columns:['Vendor','Delivery','Minimum','Strength'],rows:[['OfficeHub Demo','1–2 days','₱500','Wide range'],['SupplyLane Demo','Same day','₱1,000','Fast delivery'],['PaperPoint Demo','2–3 days','None','Budget options'],['QuickStock Demo','Next day','₱600','Easy ordering']],note:'Recommendation: OfficeHub Demo for the most balanced mix of speed, selection, and minimum order.'},
+  {title:'Travel Planning & Itinerary',category:'Executive Support',label:'SELF-CREATED PRACTICE',tools:['Itinerary','Scheduling','Travel Planning'],columns:['Date / Time','Activity','Location','Notes'],rows:[['Sep 14 • 6:30 AM','Airport check-in','NAIA T3','Arrive 2 hrs early'],['Sep 14 • 9:00 AM','Flight','Manila → Cebu','DEMO123'],['Sep 14 • 12:00 PM','Hotel check-in','Demo Hotel','HV-482'],['Sep 14 • 3:00 PM','Client meeting','Cebu BP','Bring agenda']],note:'Confirm IDs • Save bookings together • Add to calendar • Prepare backup transport'},
+  {title:'Google Drive & File Organization',category:'File Management',label:'SELF-CREATED PRACTICE',tools:['Google Drive','File Naming','Folder Structure'],columns:['Folder','Contents','Naming Rule'],rows:[['01_Admin','Policies / SOPs','YYYY-MM_DocumentName'],['02_Clients','Client deliverables','Client_Project_Date'],['03_Finance','Invoices / receipts','YYYY-MM_Vendor_Type'],['99_Archive','Completed items','Move after review']],note:'Avoid “final-final-v2” • Restrict sensitive folders • Archive monthly • Maintain one current template folder'},
+  {title:'Customer Support Response Templates',category:'Customer Support',label:'SELF-CREATED PRACTICE',tools:['Customer Service','Email','Written Support'],columns:['Scenario','Response Goal'],rows:[['Order delay','Acknowledge + monitor + update'],['Incorrect item','Document issue + next step'],['Reschedule','Offer options + confirm choice']],note:'Tone: clear • respectful • solution-focused • no unsupported promises'},
+  {title:'Client Onboarding SOP',category:'Process Documentation',label:'SELF-CREATED PRACTICE',tools:['SOP','Onboarding','Quality Check'],columns:['Step','Procedure'],rows:[['1','Receive request + deadline + requirements'],['2','Create client folder + subfolders'],['3','Confirm scope + missing information'],['4','Create tasks + owners + due dates'],['5','Quality check spelling, links, data'],['6','Deliver + mark complete + archive']],note:'Repeatable workflow designed for clean handoffs and fewer missed details.'},
+  {title:'Administrative Task Board',category:'Task Management',label:'SELF-CREATED PRACTICE',tools:['Monday.com Style','Task Tracking','Workflow'],columns:['Task','Priority','Due','Status'],rows:[['Clean lead spreadsheet','High','Aug 30','In Progress'],['Schedule Friday meeting','Medium','Aug 28','Completed'],['Organize Drive folders','High','Aug 29','In Progress'],['Research suppliers','Low','Sep 2','Not Started']],note:'Request → Confirm → Create task → Complete → QA → Update → Archive'},
+  {title:'AI Productivity for Admin Work',category:'AI-Assisted Administration',label:'SELF-CREATED PRACTICE',tools:['ChatGPT','Human Review','Quality Control'],columns:['Task','AI-Assisted Step','Human Review'],rows:[['Email draft','Create first draft','Check tone / facts'],['Research','Summarize notes','Verify sources'],['Minutes','Organize raw notes','Confirm decisions'],['Captions','Generate options','Choose brand fit']],note:'Never send without review • Remove invented facts • Protect confidential information • Client instructions come first'},
+  {title:'Order Dashboard & Tracker',category:'Spreadsheet / Data Entry',label:'PORTFOLIO PRACTICE',tools:['Microsoft Excel','Google Sheets','Dashboard Thinking'],columns:['Metric','Value'],rows:[['Total Orders','128'],['Completed','82%'],['In Progress','12%'],['Needs Review','6%']],note:'Sample data • status summaries • percentages • dashboard thinking • no client metrics claimed'},
 ];
 
-const skills = [
-  'Google Workspace',
-  'Microsoft Office / 365',
-  'Google Sheets',
-  'Google Calendar',
-  'Canva',
-  'Monday.com',
-  'ChatGPT',
-  'File Management',
-  'Internet Research',
-  'Data Entry',
-  'Customer Service',
-  'Administrative Support',
+const creative = [
+  {title:'Inspirational Poster — “Find Light”',label:'CANVA PRACTICE',category:'Canva Design',tools:['Canva','Typography','Visual Hierarchy'],headline:'FIND LIGHT',sub:'Even the smallest light can change the way forward.'},
+  {title:'Budapest Travel Promotion',label:'CANVA PRACTICE',category:'Promotional Design',tools:['Canva','Layout','Promotion'],headline:'BUDAPEST',sub:'Discover architecture, culture, and unforgettable city views.'},
+  {title:'Short-Form Visual Content',label:'CANVA PRACTICE',category:'Social Media Content',tools:['Canva','Vertical Content','Text Overlay'],headline:'CITY MOMENTS',sub:'Short-form visual concept with pacing and text overlays.'},
 ];
 
-const projects = [
-  {
-    code: '01',
-    title: 'Administrative Data Tracker',
-    type: 'Spreadsheet / Data Entry',
-    body: 'A structured sample tracker demonstrating organized records, clean formatting, status monitoring, and detail-focused data handling.',
-    tags: ['Sheets', 'Data Entry', 'Organization'],
-  },
-  {
-    code: '02',
-    title: 'Inventory Coordination Sheet',
-    type: 'Operations / Records',
-    body: 'A sample inventory and coordination workflow designed to keep records clear, searchable, and easier to review.',
-    tags: ['Excel', 'Inventory', 'Accuracy'],
-  },
-  {
-    code: '03',
-    title: 'Calendar Scheduling System',
-    type: 'Calendar Management',
-    body: 'A visual scheduling sample that demonstrates event organization, time blocking, reminders, and calendar maintenance.',
-    tags: ['Google Calendar', 'Scheduling', 'Planning'],
-  },
-  {
-    code: '04',
-    title: 'Delivery & Operations Records',
-    type: 'Real-World Workflow',
-    body: 'Operational records based on delivery work experience, highlighting time management, navigation, accuracy, and independent execution.',
-    tags: ['Operations', 'Records', 'Time Management'],
-  },
-  {
-    code: '05',
-    title: 'APEX — Personal AI Companion',
-    type: 'Personal Technology Project',
-    body: 'A personal AI companion project exploring a lightweight, local-first architecture, persistent memory, modular automation, and a futuristic desktop interface.',
-    tags: ['AI Workflow', 'UI Concept', 'Automation'],
-    featured: true,
-  },
-];
+function Arrow(){return <span aria-hidden="true">↗</span>}
+function Mail(){return <svg viewBox="0 0 24 24"><path d="M3 6h18v12H3z"/><path d="m3 7 9 7 9-7"/></svg>}
+function Phone(){return <svg viewBox="0 0 24 24"><path d="M7 3h3l2 5-2 1.5a14 14 0 0 0 4.5 4.5L16 12l5 2v3c0 2-1 4-4 4C9.3 21 3 14.7 3 7c0-3 2-4 4-4Z"/></svg>}
+function Pin(){return <svg viewBox="0 0 24 24"><path d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg>}
+function LinkedIn(){return <svg viewBox="0 0 24 24"><rect x="4" y="9" width="4" height="11" rx="1"/><path d="M6 5v.1M11 20V9h4v2c1-1.5 2.4-2.3 4-2.3 2.9 0 5 1.8 5 5.4V20h-4v-5.2c0-1.8-.7-2.8-2.3-2.8-1.8 0-2.7 1.3-2.7 3.5V20Z"/></svg>}
 
-const experience = [
-  {
-    year: '2022 — Present',
-    role: 'Foodpanda Delivery Rider',
-    detail:
-      'Handles daily deliveries independently while managing navigation, customer coordination, time-sensitive tasks, and accurate order handling.',
-  },
-  {
-    year: 'Earlier Experience',
-    role: 'Sales Demonstrator • Receiving & Dispatching • E-bike Technician • Deck Cadet',
-    detail:
-      'Built transferable strengths in customer service, responsibility, troubleshooting, physical and digital record handling, adaptability, and working under pressure.',
-  },
-];
-
-function ArrowIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M5 12h14M13 6l6 6-6 6" />
-    </svg>
-  );
+function Preview({item,large=false}){
+  if(item.headline){return <div className={`design-preview ${large?'large':''}`}><div className="design-orb"/><small>{item.label}</small><strong>{item.headline}</strong><p>{item.sub}</p><em>{item.category}</em></div>}
+  return <div className={`work-preview ${large?'large':''}`}><div className="window-bar"><i/><i/><i/><span>{item.title}</span></div><div className="preview-table" style={{'--cols':item.columns.length}}>{item.columns.map(c=><b key={c}>{c}</b>)}{item.rows.flatMap((r,ri)=>r.map((c,ci)=><span key={`${ri}-${ci}`}>{c}</span>))}</div><div className="preview-note">{item.note}</div></div>
 }
 
-function MailIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M3 6h18v12H3z" />
-      <path d="m3 7 9 7 9-7" />
-    </svg>
-  );
+function SampleCard({item,onOpen}){return <article className="sample-card reveal-card"><button className="sample-preview" onClick={()=>onOpen(item)} aria-label={`Preview ${item.title}`}><Preview item={item}/><span className="preview-shade"/><span className="preview-action">Open sample <Arrow/></span></button><div className="sample-copy"><div className="sample-meta"><span>{item.label}</span><span>{item.category}</span></div><h3>{item.title}</h3><div className="chips">{item.tools.map(t=><span key={t}>{t}</span>)}</div></div></article>}
+
+function ContactForm(){
+  const [form,setForm]=useState({name:'',email:'',subject:'',message:''});
+  function submit(e){e.preventDefault();const s=encodeURIComponent(form.subject||'Virtual Assistant Opportunity');const b=encodeURIComponent(`Name: ${form.name}\nEmail: ${form.email}\n\n${form.message}`);window.location.href=`mailto:acatanguijr29@gmail.com?subject=${s}&body=${b}`}
+  return <form className="contact-form" onSubmit={submit}>{['name','email','subject'].map(k=><input key={k} name={k} type={k==='email'?'email':'text'} placeholder={k[0].toUpperCase()+k.slice(1)} value={form[k]} onChange={e=>setForm({...form,[k]:e.target.value})} required={k!=='subject'}/>) }<textarea name="message" rows="6" placeholder="Message" value={form.message} onChange={e=>setForm({...form,message:e.target.value})} required/><button type="submit">Send <span>➤</span></button></form>
 }
 
-export default function Home() {
-  const [copied, setCopied] = useState(false);
-  const [visible, setVisible] = useState(new Set());
-  const email = 'acatanguijr29@gmail.com';
+export default function Home(){
+  const [active,setActive]=useState(null);
+  const particles=useMemo(()=>Array.from({length:22},(_,i)=>i),[]);
+  useEffect(()=>{const els=document.querySelectorAll('.reveal,.reveal-card');const ob=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('is-visible')),{threshold:.1});els.forEach(e=>ob.observe(e));return()=>ob.disconnect()},[]);
+  useEffect(()=>{if(!active)return;const f=e=>e.key==='Escape'&&setActive(null);window.addEventListener('keydown',f);return()=>window.removeEventListener('keydown',f)},[active]);
+  return <main>
+    <div className="site-grid"/><div className="spotlight s1"/><div className="spotlight s2"/><div className="spotlight s3"/>
+    <nav className="floating-nav"><a href="#about">About</a><a href="#work">Work</a><a href="#experience">Experience</a><a href="#contact">Contact</a></nav>
 
-  const dots = useMemo(
-    () =>
-      Array.from({ length: 36 }, (_, i) => ({
-        id: i,
-        x: ((i * 37) % 101) + '%',
-        y: ((i * 61) % 97) + '%',
-        delay: `${(i % 9) * 0.35}s`,
-      })),
-    []
-  );
+    <section id="top" className="hero section-shell">
+      <div className="hero-copy reveal is-visible"><p className="micro">GENERAL ADMINISTRATIVE VIRTUAL ASSISTANT • PHILIPPINES</p><h1>Helping business owners <span>stay organized</span> and keep work moving.</h1><p className="hero-lead">Hi! I&apos;m <strong>Ananias Jr. D. Catangui</strong>, an entry-level General Administrative Virtual Assistant building practical skills in admin support, data entry, research, file organization, email, scheduling, and digital productivity.</p><div className="hero-actions"><a className="magic-button" href="#work">Show my work <Arrow/></a><a className="secondary-button" href="/resume">View résumé</a></div><div className="availability"><span/>Available for full-time / long-term remote opportunities</div></div>
+      <div className="profile-stage reveal is-visible"><div className="profile-glow"/><div className="orbit orbit-a"/><div className="orbit orbit-b"/><div className="particle-ring">{particles.map(p=><i key={p} style={{'--i':p,'--count':particles.length}}/>)}</div><div className="profile-frame"><img src="https://raw.githubusercontent.com/herkeeper445-sys/ananias-va-portfolio/main/public/ananias-profile.webp" alt="Ananias Jr. D. Catangui"/><span/></div><div className="floating-pill p1"><small>WORK STYLE</small><b>Reliable • Adaptable</b></div><div className="floating-pill p2"><small>FOCUS</small><b>Admin • Data • Support</b></div></div>
+    </section>
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setVisible((prev) => new Set(prev).add(entry.target.id));
-          }
-        });
-      },
-      { threshold: 0.12 }
-    );
+    <section id="about" className="section section-shell"><div className="section-title reveal"><p className="micro">ABOUT ME</p><h2>New to professional VA work — <span>not new to responsibility.</span></h2></div><div className="bento-grid"><article className="bento bento-large reveal-card"><small>01</small><h3>Organized administrative support</h3><p>I practice structured task support, data entry, research, email organization, scheduling, documentation, and follow-through.</p></article><article className="bento reveal-card"><small>02</small><h3>Transferable operations experience</h3><p>Delivery, retail, logistics, inventory, technical, and maritime work strengthened accuracy, adaptability, time management, and problem-solving.</p></article><article className="bento reveal-card"><small>03</small><h3>Tools I&apos;m learning & using</h3><div className="tool-cloud">{['Google Workspace','Microsoft Office','Google Sheets','Google Calendar','Canva','Monday.com','ChatGPT','n8n'].map(t=><span key={t}>{t}</span>)}</div></article><article className="bento bento-wide reveal-card"><small>04</small><h3>Long-term mindset</h3><p>I&apos;m looking for a team where I can learn the workflow, become dependable, and grow into greater responsibility over time.</p></article></div></section>
 
-    document.querySelectorAll('[data-reveal]').forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, []);
+    <section id="work" className="section section-shell"><div className="section-title work-head reveal"><div><p className="micro">SELECTED WORK & PRACTICE PROJECTS</p><h2>Real practice samples, <span>clearly labeled.</span></h2></div><p className="work-note">Fictional names and practice data are never presented as paid client work.</p></div><div className="subhead reveal"><span>01</span><div><h3>Administrative VA Practice</h3><p>Email, calendar, documentation, research, file management, customer support, SOPs, task tracking, AI-assisted admin, and spreadsheet work.</p></div></div><div className="sample-grid">{samples.map(s=><SampleCard key={s.title} item={s} onOpen={setActive}/>)}</div><div className="subhead reveal"><span>02</span><div><h3>Creative & Digital Projects</h3><p>Canva practice, personal AI learning, and workflow automation exploration.</p></div></div><div className="sample-grid">{creative.map(s=><SampleCard key={s.title} item={s} onOpen={setActive}/>)}</div>
+      <div className="project-pair"><article className="feature-project reveal-card"><div className="apex-core">APEX</div><div><small>PERSONAL LEARNING PROJECT</small><h3>APEX — Personal AI Companion Concept</h3><p>Exploring a lightweight AI companion interface, local-first architecture concepts, persistent-memory ideas, workflow assistance, testing, and documentation.</p><div className="chips"><span>ChatGPT</span><span>Python Beginner</span><span>UI Planning</span></div><a href="https://www.canva.com/d/WjSHmbKyxNsdPXG" target="_blank" rel="noreferrer">View Canva sample <Arrow/></a></div></article><article className="feature-project reveal-card"><div className="workflow">{['Trigger','Prompt','Generate','Wait','Check','Retrieve','Upload'].map(n=><span key={n}>{n}</span>)}</div><div><small>LEARNING PROJECT</small><h3>n8n AI Workflow Automation</h3><p>Workflow practice covering triggers, AI prompt generation, wait/status checks, file handling, and publishing steps — not expert-level client work.</p><div className="chips"><span>n8n</span><span>Workflow Logic</span><span>Automation Practice</span></div></div></article></div>
+    </section>
 
-  useEffect(() => {
-    const handler = (event) => {
-      document.documentElement.style.setProperty('--mouse-x', `${event.clientX}px`);
-      document.documentElement.style.setProperty('--mouse-y', `${event.clientY}px`);
-    };
-    window.addEventListener('pointermove', handler, { passive: true });
-    return () => window.removeEventListener('pointermove', handler);
-  }, []);
+    <section id="experience" className="section section-shell"><div className="section-title reveal"><p className="micro">EXPERIENCE</p><h2>Transferable experience, <span>ready for remote work.</span></h2></div><div className="experience-grid">{[
+      ['2022 — Present','Foodpanda Delivery Rider','Time-sensitive scheduling, route priorities, order verification, customer communication, mobile apps, payments, and independent work.'],
+      ['2017 — 2018','Sales Demonstrator','Customer assistance, product recommendations, merchandise organization, stock monitoring, transactions, and team coordination.'],
+      ['2017','Receiving & Dispatching Unit','Receiving, checking, documenting, stock counts, discrepancy identification, inventory organization, and replenishment support.'],
+      ['Earlier Roles','E-Bike Technician • Deck Cadet • Stockman','Troubleshooting, service records, tools and parts management, discipline, operations support, and working under pressure.']
+    ].map(([y,r,d])=><article className="experience-card reveal-card" key={r}><small>{y}</small><h3>{r}</h3><p>{d}</p></article>)}</div></section>
 
-  const reveal = (id) => (visible.has(id) ? 'reveal is-visible' : 'reveal');
+    <section className="section section-shell"><div className="section-title reveal"><p className="micro">MY APPROACH</p><h2>Simple, organized, <span>easy to follow.</span></h2></div><div className="approach-grid">{[['01','Understand','I review the task, expected outcome, instructions, deadline, and tools before starting.'],['02','Organize','I confirm priorities and prepare a clear checklist or workflow so important details are not missed.'],['03','Execute & Update','I complete the work carefully, quality-check the result, keep files organized, and provide a concise status update.']].map(([n,t,d])=><article className="approach-card reveal-card" key={n}><small>{n}</small><h3>{t}</h3><p>{d}</p></article>)}</div></section>
 
-  async function copyEmail() {
-    try {
-      await navigator.clipboard.writeText(email);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      window.location.href = `mailto:${email}`;
-    }
-  }
+    <section id="contact" className="contact-section section-shell"><div className="contact-left reveal"><p className="micro">LET&apos;S CONNECT</p><h2>Ready to get <span>organized</span> and lighten your workload?</h2><p>Reach out today and let&apos;s discuss how I can support your business with dependable administrative assistance.</p><div className="contact-lines"><a href="mailto:acatanguijr29@gmail.com"><Mail/>acatanguijr29@gmail.com</a><a href="tel:+639389114841"><Phone/>0938 911 4841</a><div><Pin/>Iriga City, Camarines Sur, Philippines</div></div><div className="social-row"><a href="https://www.linkedin.com/in/ananias-jr-catangui-7b424a129" target="_blank" rel="noreferrer" aria-label="LinkedIn"><LinkedIn/></a><a href="https://wa.me/639389114841" target="_blank" rel="noreferrer" aria-label="WhatsApp">WA</a><a href="https://t.me/ananiasjrcatangui" target="_blank" rel="noreferrer" aria-label="Telegram">TG</a><a href="mailto:acatanguijr29@gmail.com" aria-label="Email"><Mail/></a></div><div className="handles"><span>WhatsApp: @ananiasjrcatangui</span><span>Telegram: @ananiasjrcatangui</span></div></div><div className="contact-right reveal"><h3>Let&apos;s <span>work</span> together</h3><ContactForm/></div></section>
 
-  return (
-    <main>
-      <div className="cursor-glow" />
-      <div className="ambient-grid" aria-hidden="true" />
-      <div className="star-field" aria-hidden="true">
-        {dots.map((dot) => (
-          <span key={dot.id} style={{ left: dot.x, top: dot.y, animationDelay: dot.delay }} />
-        ))}
-      </div>
-
-      <header className="nav-wrap">
-        <nav className="nav shell">
-          <a className="brand" href="#top" aria-label="Home">
-            <span>AC</span>
-            <strong>Ananias.</strong>
-          </a>
-          <div className="nav-links">
-            <a href="#work">Work</a>
-            <a href="#skills">Skills</a>
-            <a href="#experience">Experience</a>
-          </div>
-          <a className="nav-cta" href={`mailto:${email}`}>
-            Let&apos;s work
-            <ArrowIcon />
-          </a>
-        </nav>
-      </header>
-
-      <section id="top" className="hero shell">
-        <div className="hero-copy">
-          <div className="eyebrow"><span className="status-dot" /> Open to remote opportunities</div>
-          <h1>
-            Helping business owners
-            <span className="shine-text"> stay organized.</span>
-          </h1>
-          <p className="hero-lead">
-            I&apos;m <strong>Ananias Jr. D. Catangui</strong>, an entry-level General Administrative
-            Virtual Assistant focused on dependable support, accurate data handling, and organized workflows.
-          </p>
-          <div className="hero-actions">
-            <a className="button primary" href="#work">Explore my work <ArrowIcon /></a>
-            <button className="button ghost" type="button" onClick={copyEmail}>
-              <MailIcon /> {copied ? 'Email copied!' : 'Copy email'}
-            </button>
-          </div>
-          <div className="hero-meta">
-            <div><span>Based in</span><strong>Philippines</strong></div>
-            <div><span>Focus</span><strong>Admin • Data • Support</strong></div>
-            <div><span>Goal</span><strong>Long-term remote role</strong></div>
-          </div>
-        </div>
-
-        <div className="portrait-stage" aria-label="Portrait of Ananias Jr. D. Catangui">
-          <div className="orbit orbit-one" />
-          <div className="orbit orbit-two" />
-          <div className="portrait-halo" />
-          <div className="portrait-frame">
-            <img src="https://raw.githubusercontent.com/herkeeper445-sys/ananias-va-portfolio/main/public/ananias-profile.webp" alt="Ananias Jr. D. Catangui" />
-            <div className="portrait-overlay" />
-          </div>
-          <div className="floating-card card-a">
-            <span>GENERAL VA</span>
-            <strong>Organized support</strong>
-          </div>
-          <div className="floating-card card-b">
-            <span>WORK STYLE</span>
-            <strong>Reliable • Adaptable</strong>
-          </div>
-        </div>
-      </section>
-
-      <section className="marquee" aria-label="Skills highlights">
-        <div className="marquee-track">
-          {[...skills, ...skills].map((skill, i) => <span key={`${skill}-${i}`}>{skill}<b>✦</b></span>)}
-        </div>
-      </section>
-
-      <section id="about" className="section shell two-col">
-        <div id="about-title" data-reveal className={reveal('about-title')}>
-          <p className="section-kicker">01 / About me</p>
-          <h2>New to VA work.<br /><span>Not new to responsibility.</span></h2>
-        </div>
-        <div id="about-copy" data-reveal className={`${reveal('about-copy')} about-copy`}>
-          <p>
-            I&apos;m building my career in remote administrative support using the discipline and practical skills I&apos;ve developed through real-world work: staying organized, meeting time-sensitive requirements, serving customers, solving problems, and working independently.
-          </p>
-          <p>
-            I learn processes quickly, follow instructions carefully, and value consistency. I&apos;m looking for a company or client where I can contribute, improve, and stay for the long term as long as my help is needed.
-          </p>
-        </div>
-      </section>
-
-      <section className="section shell">
-        <div id="services-title" data-reveal className={reveal('services-title')}>
-          <p className="section-kicker">02 / What I can support</p>
-          <h2>Practical help for <span>busy workflows.</span></h2>
-        </div>
-        <div className="service-grid">
-          {services.map(([title, body], index) => (
-            <article id={`service-${index}`} data-reveal className={`${reveal(`service-${index}`)} service-card`} key={title}>
-              <div className="service-number">0{index + 1}</div>
-              <h3>{title}</h3>
-              <p>{body}</p>
-              <div className="service-line" />
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section id="work" className="section shell">
-        <div className="section-head">
-          <div id="work-title" data-reveal className={reveal('work-title')}>
-            <p className="section-kicker">03 / Selected work</p>
-            <h2>Samples that show <span>how I work.</span></h2>
-          </div>
-          <p id="work-note" data-reveal className={`${reveal('work-note')} section-note`}>
-            Practice and personal projects built to demonstrate organization, accuracy, scheduling, operations thinking, and technology curiosity.
-          </p>
-        </div>
-
-        <div className="project-grid">
-          {projects.map((project, index) => (
-            <article id={`project-${index}`} data-reveal className={`${reveal(`project-${index}`)} project-card ${project.featured ? 'featured' : ''}`} key={project.title}>
-              <div className="project-top"><span>{project.code}</span><span>{project.type}</span></div>
-              <div>
-                <h3>{project.title}</h3>
-                <p>{project.body}</p>
-              </div>
-              <div className="tag-row">{project.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section id="skills" className="section shell skill-section">
-        <div id="skills-title" data-reveal className={reveal('skills-title')}>
-          <p className="section-kicker">04 / Toolkit</p>
-          <h2>Comfortable with the tools that <span>keep work moving.</span></h2>
-        </div>
-        <div className="skill-cloud">
-          {skills.map((skill, index) => (
-            <span id={`skill-${index}`} data-reveal className={reveal(`skill-${index}`)} key={skill}>{skill}</span>
-          ))}
-        </div>
-      </section>
-
-      <section id="experience" className="section shell experience-section">
-        <div id="experience-title" data-reveal className={reveal('experience-title')}>
-          <p className="section-kicker">05 / Experience</p>
-          <h2>Transferable experience,<br /><span>ready for remote work.</span></h2>
-        </div>
-        <div className="timeline">
-          {experience.map((item, index) => (
-            <article id={`exp-${index}`} data-reveal className={reveal(`exp-${index}`)} key={item.role}>
-              <div className="timeline-dot" />
-              <span className="timeline-year">{item.year}</span>
-              <h3>{item.role}</h3>
-              <p>{item.detail}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="section shell commitment">
-        <div id="commitment" data-reveal className={`${reveal('commitment')} commitment-card`}>
-          <span className="big-quote">“</span>
-          <p>
-            I&apos;m not looking for a temporary VA title. I&apos;m looking for the opportunity to become useful, dependable, and valuable to a team over time.
-          </p>
-          <div><span>ANANIAS JR. D. CATANGUI</span><strong>General Administrative VA</strong></div>
-        </div>
-      </section>
-
-      <section id="contact" className="section shell contact-section">
-        <div id="contact-card" data-reveal className={`${reveal('contact-card')} contact-card`}>
-          <p className="section-kicker">06 / Let&apos;s connect</p>
-          <h2>Need an organized extra pair of hands?</h2>
-          <p>I&apos;m ready to learn your workflow and help you keep the important details under control.</p>
-          <div className="contact-actions">
-            <a className="button light" href={`mailto:${email}?subject=Virtual%20Assistant%20Opportunity`}>Email me <ArrowIcon /></a>
-            <button className="email-chip" type="button" onClick={copyEmail}>{copied ? 'Copied!' : email}</button>
-          </div>
-        </div>
-      </section>
-
-      <footer className="footer shell">
-        <div className="brand"><span>AC</span><strong>Ananias.</strong></div>
-        <p>General Administrative Virtual Assistant • Philippines</p>
-        <a href="#top">Back to top ↑</a>
-      </footer>
-    </main>
-  );
+    <footer className="footer section-shell"><p>© 2026 Ananias Jr. D. Catangui. All rights reserved.</p><a href="#top">Back to top ↑</a></footer>
+    {active&&<div className="modal" onClick={()=>setActive(null)}><div className="modal-card" onClick={e=>e.stopPropagation()}><button onClick={()=>setActive(null)}>×</button><Preview item={active} large/><div className="modal-copy"><small>{active.label}</small><h3>{active.title}</h3><div className="chips">{active.tools.map(t=><span key={t}>{t}</span>)}</div></div></div></div>}
+  </main>
 }
