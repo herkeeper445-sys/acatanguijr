@@ -18,6 +18,7 @@ const skills = [
   'Google Calendar',
   'Canva',
   'Monday.com',
+  'n8n',
   'ChatGPT',
   'File Management',
   'Internet Research',
@@ -29,6 +30,7 @@ const skills = [
 const projects = [
   {
     code: '01',
+    label: 'PRACTICE PROJECT',
     title: 'Administrative Data Tracker',
     type: 'Spreadsheet / Data Entry',
     body: 'A structured sample tracker demonstrating organized records, clean formatting, status monitoring, and detail-focused data handling.',
@@ -36,30 +38,36 @@ const projects = [
   },
   {
     code: '02',
-    title: 'Inventory Coordination Sheet',
-    type: 'Operations / Records',
-    body: 'A sample inventory and coordination workflow designed to keep records clear, searchable, and easier to review.',
-    tags: ['Excel', 'Inventory', 'Accuracy'],
-  },
-  {
-    code: '03',
+    label: 'PRACTICE PROJECT',
     title: 'Calendar Scheduling System',
     type: 'Calendar Management',
     body: 'A visual scheduling sample that demonstrates event organization, time blocking, reminders, and calendar maintenance.',
     tags: ['Google Calendar', 'Scheduling', 'Planning'],
   },
   {
+    code: '03',
+    label: 'CANVA PRACTICE SAMPLE',
+    title: 'Canva Portfolio Design Sample',
+    type: 'Visual Design / Presentation',
+    body: 'A Canva-based portfolio sample used to practice clean layout, hierarchy, presentation, and professional visual organization.',
+    tags: ['Canva', 'Layout', 'Presentation'],
+    href: 'https://www.canva.com/d/nWfZX16F_D6KvtZ',
+    linkText: 'View Canva sample',
+  },
+  {
     code: '04',
-    title: 'Delivery & Operations Records',
-    type: 'Real-World Workflow',
-    body: 'Operational records based on delivery work experience, highlighting time management, navigation, accuracy, and independent execution.',
-    tags: ['Operations', 'Records', 'Time Management'],
+    label: 'LEARNING PROJECT',
+    title: 'n8n Workflow Automation Practice',
+    type: 'Automation / Workflow',
+    body: 'Beginner workflow-automation practice using n8n to understand triggers, actions, data flow, and repeatable task processes.',
+    tags: ['n8n', 'Automation', 'Workflow Practice'],
   },
   {
     code: '05',
+    label: 'PERSONAL PROJECT',
     title: 'APEX — Personal AI Companion',
-    type: 'Personal Technology Project',
-    body: 'A personal AI companion project exploring a lightweight, local-first architecture, persistent memory, modular automation, and a futuristic desktop interface.',
+    type: 'Technology / AI Workflow',
+    body: 'A personal learning project exploring a lightweight AI companion interface, modular automation ideas, documentation, testing, and troubleshooting.',
     tags: ['AI Workflow', 'UI Concept', 'Automation'],
     featured: true,
   },
@@ -71,12 +79,14 @@ const experience = [
     role: 'Foodpanda Delivery Rider',
     detail:
       'Handles daily deliveries independently while managing navigation, customer coordination, time-sensitive tasks, and accurate order handling.',
+    skills: 'Time management • Customer communication • Accuracy • Independent work',
   },
   {
     year: 'Earlier Experience',
-    role: 'Sales Demonstrator • Receiving & Dispatching • E-bike Technician • Deck Cadet',
+    role: 'Sales • Receiving & Dispatching • E-bike Technician • Deck Cadet',
     detail:
-      'Built transferable strengths in customer service, responsibility, troubleshooting, physical and digital record handling, adaptability, and working under pressure.',
+      'Built transferable strengths in customer service, responsibility, troubleshooting, record handling, adaptability, documentation, and working under pressure.',
+    skills: 'Customer service • Documentation • Inventory • Problem solving • Discipline',
   },
 ];
 
@@ -97,18 +107,40 @@ function MailIcon() {
   );
 }
 
+function PhoneIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M7 3h3l2 5-2 1.5a14 14 0 0 0 4.5 4.5L16 12l5 2v3c0 2-1 4-4 4C9.3 21 3 14.7 3 7c0-3 2-4 4-4Z" />
+    </svg>
+  );
+}
+
+function LinkedInIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="4" y="9" width="4" height="11" rx="1" />
+      <path d="M6 4.8v.1M11 20V9h4v2c1-1.6 2.4-2.4 4.1-2.4 2.8 0 4.9 1.8 4.9 5.5V20h-4v-5.1c0-1.8-.7-2.9-2.3-2.9-1.8 0-2.7 1.2-2.7 3.4V20Z" />
+    </svg>
+  );
+}
+
 export default function Home() {
   const [copied, setCopied] = useState(false);
   const [visible, setVisible] = useState(new Set());
+
   const email = 'acatanguijr29@gmail.com';
+  const phone = '+63 938 911 4841';
+  const phoneHref = 'tel:+639389114841';
+  const linkedin = 'https://www.linkedin.com/in/ananias-jr-catangui-7b424a129';
+  const resumeHref = '/Ananias-Jr-Catangui-Resume.pdf';
 
   const dots = useMemo(
     () =>
-      Array.from({ length: 36 }, (_, i) => ({
+      Array.from({ length: 48 }, (_, i) => ({
         id: i,
         x: ((i * 37) % 101) + '%',
         y: ((i * 61) % 97) + '%',
-        delay: `${(i % 9) * 0.35}s`,
+        delay: `${(i % 12) * 0.28}s`,
       })),
     []
   );
@@ -170,6 +202,7 @@ export default function Home() {
             <a href="#work">Work</a>
             <a href="#skills">Skills</a>
             <a href="#experience">Experience</a>
+            <a href="#contact">Contact</a>
           </div>
           <a className="nav-cta" href={`mailto:${email}`}>
             Let&apos;s work
@@ -180,23 +213,22 @@ export default function Home() {
 
       <section id="top" className="hero shell">
         <div className="hero-copy">
-          <div className="eyebrow"><span className="status-dot" /> Open to remote opportunities</div>
+          <div className="eyebrow"><span className="status-dot" /> Available for remote opportunities</div>
           <h1>
             Helping business owners
             <span className="shine-text"> stay organized.</span>
           </h1>
           <p className="hero-lead">
             I&apos;m <strong>Ananias Jr. D. Catangui</strong>, an entry-level General Administrative
-            Virtual Assistant focused on dependable support, accurate data handling, and organized workflows.
+            Virtual Assistant focused on dependable support, accurate data handling, organized workflows, and continuous learning.
           </p>
           <div className="hero-actions">
             <a className="button primary" href="#work">Explore my work <ArrowIcon /></a>
-            <button className="button ghost" type="button" onClick={copyEmail}>
-              <MailIcon /> {copied ? 'Email copied!' : 'Copy email'}
-            </button>
+            <a className="button ghost" href={resumeHref} target="_blank" rel="noreferrer">View resume</a>
+            <a className="button ghost" href={linkedin} target="_blank" rel="noreferrer"><LinkedInIcon /> LinkedIn</a>
           </div>
           <div className="hero-meta">
-            <div><span>Based in</span><strong>Philippines</strong></div>
+            <div><span>Based in</span><strong>Iriga City, Philippines</strong></div>
             <div><span>Focus</span><strong>Admin • Data • Support</strong></div>
             <div><span>Goal</span><strong>Long-term remote role</strong></div>
           </div>
@@ -218,6 +250,7 @@ export default function Home() {
             <span>WORK STYLE</span>
             <strong>Reliable • Adaptable</strong>
           </div>
+          <div className="portrait-caption">Animated particle field • Profile photo stays in focus</div>
         </div>
       </section>
 
@@ -266,7 +299,7 @@ export default function Home() {
             <h2>Samples that show <span>how I work.</span></h2>
           </div>
           <p id="work-note" data-reveal className={`${reveal('work-note')} section-note`}>
-            Practice and personal projects built to demonstrate organization, accuracy, scheduling, operations thinking, and technology curiosity.
+            Practice and personal projects are clearly labeled so employers can see what I&apos;ve built without confusing them with paid client work.
           </p>
         </div>
 
@@ -275,10 +308,18 @@ export default function Home() {
             <article id={`project-${index}`} data-reveal className={`${reveal(`project-${index}`)} project-card ${project.featured ? 'featured' : ''}`} key={project.title}>
               <div className="project-top"><span>{project.code}</span><span>{project.type}</span></div>
               <div>
+                <span className="project-label">{project.label}</span>
                 <h3>{project.title}</h3>
                 <p>{project.body}</p>
               </div>
-              <div className="tag-row">{project.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
+              <div className="project-bottom">
+                <div className="tag-row">{project.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
+                {project.href && (
+                  <a className="project-link" href={project.href} target="_blank" rel="noreferrer">
+                    {project.linkText || 'View sample'} <ArrowIcon />
+                  </a>
+                )}
+              </div>
             </article>
           ))}
         </div>
@@ -287,8 +328,9 @@ export default function Home() {
       <section id="skills" className="section shell skill-section">
         <div id="skills-title" data-reveal className={reveal('skills-title')}>
           <p className="section-kicker">04 / Toolkit</p>
-          <h2>Comfortable with the tools that <span>keep work moving.</span></h2>
+          <h2>Tools I&apos;m learning and using to <span>keep work moving.</span></h2>
         </div>
+        <p className="tool-note">Learning / practice level unless otherwise demonstrated in my work samples.</p>
         <div className="skill-cloud">
           {skills.map((skill, index) => (
             <span id={`skill-${index}`} data-reveal className={reveal(`skill-${index}`)} key={skill}>{skill}</span>
@@ -308,6 +350,7 @@ export default function Home() {
               <span className="timeline-year">{item.year}</span>
               <h3>{item.role}</h3>
               <p>{item.detail}</p>
+              <strong className="timeline-skills">{item.skills}</strong>
             </article>
           ))}
         </div>
@@ -328,17 +371,39 @@ export default function Home() {
           <p className="section-kicker">06 / Let&apos;s connect</p>
           <h2>Need an organized extra pair of hands?</h2>
           <p>I&apos;m ready to learn your workflow and help you keep the important details under control.</p>
+
+          <div className="contact-info-grid">
+            <a href={`mailto:${email}`} className="contact-info-item">
+              <span><MailIcon /></span>
+              <div><small>Email</small><strong>{email}</strong></div>
+            </a>
+            <a href={phoneHref} className="contact-info-item">
+              <span><PhoneIcon /></span>
+              <div><small>Phone</small><strong>{phone}</strong></div>
+            </a>
+            <a href={linkedin} target="_blank" rel="noreferrer" className="contact-info-item">
+              <span><LinkedInIcon /></span>
+              <div><small>LinkedIn</small><strong>View profile</strong></div>
+            </a>
+          </div>
+
           <div className="contact-actions">
             <a className="button light" href={`mailto:${email}?subject=Virtual%20Assistant%20Opportunity`}>Email me <ArrowIcon /></a>
-            <button className="email-chip" type="button" onClick={copyEmail}>{copied ? 'Copied!' : email}</button>
+            <a className="button ghost" href={resumeHref} target="_blank" rel="noreferrer">View resume</a>
+            <button className="email-chip" type="button" onClick={copyEmail}>{copied ? 'Copied!' : 'Copy email'}</button>
           </div>
         </div>
       </section>
 
       <footer className="footer shell">
         <div className="brand"><span>AC</span><strong>Ananias.</strong></div>
-        <p>General Administrative Virtual Assistant • Philippines</p>
-        <a href="#top">Back to top ↑</a>
+        <p>General Administrative Virtual Assistant • Iriga City, Philippines</p>
+        <div className="footer-links">
+          <a href={linkedin} target="_blank" rel="noreferrer">LinkedIn</a>
+          <a href={`mailto:${email}`}>Email</a>
+          <a href={phoneHref}>Phone</a>
+          <a href="#top">Back to top ↑</a>
+        </div>
       </footer>
     </main>
   );
