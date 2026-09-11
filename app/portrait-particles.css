@@ -1,0 +1,77 @@
+.portrait-stage::before,
+.portrait-stage::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+  z-index: 0;
+  transform-origin: 50% 50%;
+}
+
+/* Animated particle halo behind the profile photo */
+.portrait-stage::before {
+  inset: -7% -10%;
+  opacity: .92;
+  background:
+    radial-gradient(circle at 50% 1%, rgba(99,230,255,.95) 0 3px, transparent 4px),
+    radial-gradient(circle at 77% 8%, rgba(215,251,255,.76) 0 2px, transparent 3px),
+    radial-gradient(circle at 94% 28%, rgba(167,139,250,.88) 0 3px, transparent 4px),
+    radial-gradient(circle at 99% 54%, rgba(99,230,255,.72) 0 2px, transparent 3px),
+    radial-gradient(circle at 86% 82%, rgba(215,251,255,.88) 0 2.5px, transparent 3.5px),
+    radial-gradient(circle at 59% 98%, rgba(99,230,255,.95) 0 3px, transparent 4px),
+    radial-gradient(circle at 28% 93%, rgba(167,139,250,.80) 0 2px, transparent 3px),
+    radial-gradient(circle at 7% 72%, rgba(99,230,255,.80) 0 2.5px, transparent 3.5px),
+    radial-gradient(circle at 2% 40%, rgba(215,251,255,.88) 0 2px, transparent 3px),
+    radial-gradient(circle at 18% 13%, rgba(99,230,255,.95) 0 3px, transparent 4px);
+  filter: drop-shadow(0 0 9px rgba(99,230,255,.65));
+  animation: portrait-particles-spin 16s linear infinite;
+}
+
+.portrait-stage::after {
+  inset: 2% -2%;
+  opacity: .72;
+  background:
+    radial-gradient(circle at 53% 0%, rgba(167,139,250,.90) 0 2px, transparent 3px),
+    radial-gradient(circle at 90% 20%, rgba(99,230,255,.80) 0 2px, transparent 3px),
+    radial-gradient(circle at 100% 63%, rgba(215,251,255,.72) 0 1.8px, transparent 2.8px),
+    radial-gradient(circle at 71% 95%, rgba(99,230,255,.86) 0 2.4px, transparent 3.4px),
+    radial-gradient(circle at 23% 91%, rgba(215,251,255,.74) 0 1.8px, transparent 2.8px),
+    radial-gradient(circle at 0% 59%, rgba(167,139,250,.84) 0 2.2px, transparent 3.2px),
+    radial-gradient(circle at 12% 22%, rgba(99,230,255,.78) 0 2px, transparent 3px);
+  filter: drop-shadow(0 0 7px rgba(167,139,250,.55));
+  animation: portrait-particles-reverse 23s linear infinite;
+}
+
+/* Keep the photo in front so the particles visibly travel behind it. */
+.portrait-frame {
+  z-index: 2;
+}
+
+.portrait-halo,
+.orbit {
+  z-index: 1;
+}
+
+@keyframes portrait-particles-spin {
+  from { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.035); }
+  to { transform: rotate(360deg) scale(1); }
+}
+
+@keyframes portrait-particles-reverse {
+  from { transform: rotate(360deg) scale(.98); }
+  50% { transform: rotate(180deg) scale(1.025); }
+  to { transform: rotate(0deg) scale(.98); }
+}
+
+@media (max-width: 720px) {
+  .portrait-stage::before { inset: -4% -5%; opacity: .78; }
+  .portrait-stage::after { opacity: .58; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portrait-stage::before,
+  .portrait-stage::after {
+    animation: none;
+  }
+}
