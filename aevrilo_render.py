@@ -236,8 +236,7 @@ def render_worker():
         gal1080=os.path.join(BASE,"galaxy_1080p.mp4")
         bg_cmd=[
             ffmpeg,"-y","-nostats","-loglevel","error",
-            "-stream_loop","-1","-i",gal,
-            "-t",f"{TIMES[-1]:.3f}",
+            "-i",gal,
             "-vf","scale=1920:1080:force_original_aspect_ratio=increase:flags=fast_bilinear,"
                   "crop=1920:1080,fps=24,eq=brightness=-0.18:saturation=0.86,format=yuv420p",
             "-an","-threads","1","-c:v","libx264","-preset","ultrafast","-crf","24",
