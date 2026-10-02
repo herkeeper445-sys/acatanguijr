@@ -184,20 +184,28 @@ def render_worker():
             ftxt.write(f"file '{fgdir}/099.png'\\n")
 
         ffmpeg=imageio_ffmpeg.get_ffmpeg_exe()
-        STATUS.update(progress=65,message="Rendering with the permanent galaxy background")
 
-        # Stream the user's galaxy background and original narration directly.
-        # This avoids wasting local disk and does not use any generative/AI editor.
+        # Download the user's exact background and narration with Python first.
+        # The bundled ffmpeg build is more reliable with local media than redirected HTTPS URLs.
+        STATUS.update(progress=61,message="Downloading permanent galaxy background")
+        gal=os.path.join(BASE,"galaxy.mp4")
+        dl(URLS["galaxy"],gal)
+        STATUS.update(progress=63,message="Downloading original narration")
+        aud=os.path.join(BASE,"narration.wav")
+        dl(URLS["audio"],aud)
+
+        STATUS.update(progress=65,message="Rendering with the permanent galaxy background")
         cmd=[
             ffmpeg,"-y",
-            "-stream_loop","-1","-i",URLS["galaxy"],
+            "-stream_loop","-1","-i",gal,
             "-f","concat","-safe","0","-i",concat,
-            "-i",URLS["audio"],
+            "-i",aud,
             "-filter_complex",
-            "[0:v]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,boxblur=2:1,eq=brightness=-0.18:saturation=0.86[bg];"
+            "[0:v]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,eq=brightness=-0.18:saturation=0.86[bg];"
             "[1:v]format=rgba[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2:format=auto[v]",
             "-map","[v]","-map","2:a:0",
             "-t","690.275","-r","24",
+            "-filter_threads","1","-threads","1",
             "-c:v","libx264","-preset","veryfast","-crf","17","-pix_fmt","yuv420p",
             "-c:a","aac","-b:a","192k",
             "-movflags","+faststart",OUT
