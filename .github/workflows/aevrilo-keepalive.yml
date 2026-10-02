@@ -6,7 +6,7 @@ on:
     paths:
       - ".github/workflows/aevrilo-keepalive.yml"
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/5 11-12 2 10 *"
 
 jobs:
   ping-render:
