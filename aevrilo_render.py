@@ -1,4 +1,4 @@
-import os, threading, time, io, requests, fitz, subprocess, traceback
+import os, threading, time, io, requests, fitz, subprocess, traceback, multiprocessing
 from PIL import Image, ImageOps, ImageEnhance
 from flask import Flask, send_file, jsonify
 
@@ -98,6 +98,56 @@ def panel_to_canvas(panel,path):
     canv.alpha_composite(panel.convert("RGBA"),(x,y))
     canv.save(path,optimize=True)
 
+def process_chapter_worker(ch, pdf, fgdir):
+    # Run in a fresh process so PyMuPDF/Pillow allocations are returned to the OS
+    # after every chapter. This keeps the 512 MB Render free instance below its RAM limit.
+    import gc
+    doc=fitz.open(pdf)
+    chapter_shots=[(idx,p,focus) for idx,(c,p,focus) in enumerate(SHOTS,1) if c==ch]
+    for idx,p,focus in chapter_shots:
+        if isinstance(p,tuple):
+            a=extract_page_image(doc,p[0])
+            b=extract_page_image(doc,p[1])
+            if ch==1 and p==(3,4):
+                ca=a.crop((0,int(a.height*.68),a.width,a.height))
+                cb=b.crop((0,0,b.width,int(b.height*.32)))
+            elif ch==1 and p==(13,14):
+                ca=a.crop((0,int(a.height*.62),a.width,a.height))
+                cb=b.crop((0,0,b.width,int(b.height*.36)))
+            else:
+                ca=a.crop((0,int(a.height*.66),a.width,a.height))
+                cb=b.crop((0,0,b.width,int(b.height*.38)))
+            W=max(ca.width,cb.width)
+            comb=Image.new("RGB",(W,ca.height+cb.height),"white")
+            comb.paste(ca,((W-ca.width)//2,0))
+            comb.paste(cb,((W-cb.width)//2,ca.height))
+            panel=crop_window(comb,.5,.72)
+            del a,b,ca,cb,comb
+        else:
+            src=extract_page_image(doc,p)
+            panel=crop_window(src,focus,.72)
+            del src
+
+        panel=panel.convert("RGB")
+        # Keep the manga crisp without unnecessary upscaling.
+        maxw,maxh=1120,900
+        scale=min(maxw/panel.width,maxh/panel.height,1.25)
+        nw=max(2,int(panel.width*scale)); nh=max(2,int(panel.height*scale))
+        panel=panel.resize((nw,nh),Image.Resampling.LANCZOS)
+        panel=ImageEnhance.Sharpness(panel).enhance(1.06)
+
+        # Smaller transparent foreground; centered by FFmpeg over the permanent galaxy BG.
+        canv=Image.new("RGBA",(1200,960),(0,0,0,0))
+        x=(1200-nw)//2; y=(960-nh)//2
+        sh=Image.new("RGBA",(nw,nh),(0,0,0,145))
+        canv.alpha_composite(sh,(x+8,y+8))
+        canv.alpha_composite(panel.convert("RGBA"),(x,y))
+        canv.save(os.path.join(fgdir,f"{idx:03d}.png"),compress_level=5)
+        del panel,canv,sh
+        gc.collect()
+    doc.close()
+    gc.collect()
+
 def render_worker():
     try:
         import gc, imageio_ffmpeg
@@ -105,64 +155,26 @@ def render_worker():
         fgdir=os.path.join(BASE,"fg")
         os.makedirs(fgdir,exist_ok=True)
 
-        # Index shots by chapter, preserving final output order.
-        by_ch={ch:[] for ch in range(1,6)}
-        for idx,(ch,p,focus) in enumerate(SHOTS,1):
-            by_ch[ch].append((idx,p,focus))
-
-        # Process ONE PDF and ONE/Few images at a time. Never cache all chapter pages.
+        # Process each chapter in a fresh child process to prevent native-memory buildup.
         for ch in range(1,6):
             pdf=os.path.join(BASE,f"ch{ch}.pdf")
             STATUS.update(progress=3+ch*5,message=f"Downloading Chapter {ch}")
             dl(URLS[ch],pdf)
+
             STATUS.update(progress=5+ch*5,message=f"Extracting Chapter {ch} native panels")
-            doc=fitz.open(pdf)
-
-            for idx,p,focus in by_ch[ch]:
-                if isinstance(p,tuple):
-                    # Load only the two continuation pages needed for this shot.
-                    a=extract_page_image(doc,p[0])
-                    b=extract_page_image(doc,p[1])
-                    if ch==1 and p==(3,4):
-                        ca=a.crop((0,int(a.height*.68),a.width,a.height))
-                        cb=b.crop((0,0,b.width,int(b.height*.32)))
-                    elif ch==1 and p==(13,14):
-                        ca=a.crop((0,int(a.height*.62),a.width,a.height))
-                        cb=b.crop((0,0,b.width,int(b.height*.36)))
-                    else:
-                        ca=a.crop((0,int(a.height*.66),a.width,a.height))
-                        cb=b.crop((0,0,b.width,int(b.height*.38)))
-                    W=max(ca.width,cb.width)
-                    comb=Image.new("RGB",(W,ca.height+cb.height),"white")
-                    comb.paste(ca,((W-ca.width)//2,0))
-                    comb.paste(cb,((W-cb.width)//2,ca.height))
-                    panel=crop_window(comb,.5,.72)
-                    del a,b,ca,cb,comb
-                else:
-                    src=extract_page_image(doc,p)
-                    panel=crop_window(src,focus,.72)
-                    del src
-
-                # Use a smaller transparent overlay canvas to cut RAM substantially.
-                panel=panel.convert("RGB")
-                maxw,maxh=1120,900
-                scale=min(maxw/panel.width,maxh/panel.height,1.25)
-                nw=max(2,int(panel.width*scale)); nh=max(2,int(panel.height*scale))
-                panel=panel.resize((nw,nh),Image.Resampling.LANCZOS)
-                panel=ImageEnhance.Sharpness(panel).enhance(1.06)
-                canv=Image.new("RGBA",(1200,960),(0,0,0,0))
-                x=(1200-nw)//2; y=(960-nh)//2
-                sh=Image.new("RGBA",(nw,nh),(0,0,0,145))
-                canv.alpha_composite(sh,(x+8,y+8))
-                canv.alpha_composite(panel.convert("RGBA"),(x,y))
-                canv.save(os.path.join(fgdir,f"{idx:03d}.png"),compress_level=6)
-                del panel,canv,sh
-                gc.collect()
-
-            doc.close()
+            proc=multiprocessing.Process(target=process_chapter_worker,args=(ch,pdf,fgdir))
+            proc.start()
+            proc.join()
+            if proc.exitcode!=0:
+                raise RuntimeError(f"Chapter {ch} panel extraction failed with exit code {proc.exitcode}")
             os.remove(pdf)
             gc.collect()
             STATUS["progress"]=20+ch*8
+
+        # Verify all 99 expected static frames exist before encoding.
+        missing=[i for i in range(1,100) if not os.path.exists(os.path.join(fgdir,f"{i:03d}.png"))]
+        if missing:
+            raise RuntimeError(f"Missing prepared panels: {missing[:12]}")
 
         concat=os.path.join(BASE,"panels.txt")
         with open(concat,"w") as ftxt:
@@ -173,39 +185,36 @@ def render_worker():
             ftxt.write(f"file '{fgdir}/099.png'\\n")
 
         ffmpeg=imageio_ffmpeg.get_ffmpeg_exe()
-        STATUS.update(progress=62,message="Downloading permanent galaxy background")
-        gal=os.path.join(BASE,"galaxy.mp4")
-        dl(URLS["galaxy"],gal)
+        STATUS.update(progress=65,message="Rendering with the permanent galaxy background")
 
-        STATUS.update(progress=66,message="Downloading original narration")
-        aud=os.path.join(BASE,"narration.wav")
-        dl(URLS["audio"],aud)
-
-        STATUS.update(progress=72,message="Rendering Chapter 1-5 at 1080p")
+        # Stream the user's galaxy background and original narration directly.
+        # This avoids wasting local disk and does not use any generative/AI editor.
         cmd=[
             ffmpeg,"-y",
-            "-stream_loop","-1","-i",gal,
+            "-stream_loop","-1","-i",URLS["galaxy"],
             "-f","concat","-safe","0","-i",concat,
-            "-i",aud,
+            "-i",URLS["audio"],
             "-filter_complex",
-            "[0:v]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,boxblur=2:1,eq=brightness=-0.20:saturation=0.82[bg];"
+            "[0:v]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,boxblur=2:1,eq=brightness=-0.18:saturation=0.86[bg];"
             "[1:v]format=rgba[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2:format=auto[v]",
             "-map","[v]","-map","2:a:0",
             "-t","690.275","-r","24",
-            "-c:v","libx264","-preset","fast","-crf","17","-pix_fmt","yuv420p",
+            "-c:v","libx264","-preset","veryfast","-crf","17","-pix_fmt","yuv420p",
             "-c:a","aac","-b:a","192k",
             "-movflags","+faststart",OUT
         ]
         p=subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,bufsize=1)
-        lastp=72
+        lastp=65
+        tail=[]
         for line in p.stdout:
+            tail.append(line.rstrip())
+            if len(tail)>40: tail.pop(0)
             if "time=" in line:
-                # lightweight progress estimate from ffmpeg time=HH:MM:SS.xx
                 try:
                     s=line.split("time=")[1].split()[0]
                     hh,mm,ss=s.split(":")
                     sec=float(hh)*3600+float(mm)*60+float(ss)
-                    prog=72+int(min(1.0,sec/690.275)*26)
+                    prog=65+int(min(1.0,sec/690.275)*33)
                     if prog>lastp:
                         STATUS["progress"]=prog
                         lastp=prog
@@ -213,7 +222,7 @@ def render_worker():
                     pass
         rc=p.wait()
         if rc!=0 or not os.path.exists(OUT):
-            raise RuntimeError("FFmpeg render failed")
+            raise RuntimeError("FFmpeg render failed: "+" | ".join(tail[-8:]))
         STATUS.update(state="done",progress=100,message="Chapter 1-5 1080p recap ready")
     except Exception as e:
         STATUS.update(state="error",progress=0,message=str(e),trace=traceback.format_exc()[-4000:])
