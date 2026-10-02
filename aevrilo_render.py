@@ -1,4 +1,4 @@
-import os, threading, io, requests, fitz, subprocess, traceback
+import os, threading, time, io, requests, fitz, subprocess, traceback
 from PIL import Image, ImageOps, ImageEnhance
 from flask import Flask, send_file, jsonify
 
@@ -174,5 +174,11 @@ def download():
     if STATUS.get("state")!="done": return jsonify(STATUS),409
     return send_file(OUT,as_attachment=True,download_name="Aevrilo_Civil_Servant_Ch1-5_1080p.mp4",mimetype="video/mp4")
 
+def monitor_status():
+    while True:
+        print("AEVRILO_STATUS", STATUS, flush=True)
+        time.sleep(10)
+
+threading.Thread(target=monitor_status,daemon=True).start()
 threading.Thread(target=render_worker,daemon=True).start()
 app.run(host="0.0.0.0",port=int(os.environ.get("PORT","10000")))
