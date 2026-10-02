@@ -209,9 +209,9 @@ def render_worker():
             with open(cconcat,"w") as cf:
                 for i in range(start,end):
                     dur=max(.12,TIMES[i+1]-TIMES[i])
-                    cf.write(f"file '{fgdir}/{i+1:03d}.png'\\n")
-                    cf.write(f"duration {dur:.6f}\\n")
-                cf.write(f"file '{fgdir}/{end:03d}.png'\\n")
+                    cf.write(f"file '{fgdir}/{i+1:03d}.png'\n")
+                    cf.write(f"duration {dur:.6f}\n")
+                cf.write(f"file '{fgdir}/{end:03d}.png'\n")
 
             cpath=os.path.join(chunk_dir,f"chunk_{chunk_no:02d}.mp4")
             cdur=max(.12,TIMES[end]-TIMES[start])
@@ -245,7 +245,7 @@ def render_worker():
         chunk_list=os.path.join(BASE,"chunks.txt")
         with open(chunk_list,"w") as lf:
             for cp in chunk_paths:
-                lf.write(f"file '{cp}'\\n")
+                lf.write(f"file '{cp}'\n")
         video_only=os.path.join(BASE,"video_1080p.mp4")
         join_cmd=[ffmpeg,"-y","-f","concat","-safe","0","-i",chunk_list,
                   "-c","copy","-movflags","+faststart",video_only]
