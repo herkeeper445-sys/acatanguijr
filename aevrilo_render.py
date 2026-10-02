@@ -194,43 +194,73 @@ def render_worker():
         aud=os.path.join(BASE,"narration.wav")
         dl(URLS["audio"],aud)
 
-        STATUS.update(progress=65,message="Rendering 1080p with low-memory encoder and permanent galaxy background")
-        cmd=[
-            ffmpeg,"-y",
-            "-stream_loop","-1","-i",gal,
-            "-f","concat","-safe","0","-i",concat,
-            "-i",aud,
-            "-filter_complex",
-            "[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,eq=brightness=-0.18:saturation=0.86[bgsmall];"
-            "[1:v]scale=1000:-2:flags=lanczos,format=rgba[fgsmall];"
-            "[bgsmall][fgsmall]overlay=(W-w)/2:(H-h)/2:format=auto,scale=1920:1080:flags=lanczos[v]",
-            "-map","[v]","-map","2:a:0",
-            "-t","690.275","-r","24",
-            "-filter_threads","1","-threads","1",
-            "-c:v","libx264","-preset","ultrafast","-crf","16","-pix_fmt","yuv420p","-x264-params","threads=1:lookahead_threads=1:rc-lookahead=0:sync-lookahead=0:sliced-threads=1",
-            "-c:a","aac","-b:a","192k",
-            "-movflags","+faststart",OUT
-        ]
-        p=subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,bufsize=1)
-        lastp=65
-        tail=[]
-        for line in p.stdout:
-            tail.append(line.rstrip())
-            if len(tail)>40: tail.pop(0)
-            if "time=" in line:
-                try:
-                    s=line.split("time=")[1].split()[0]
-                    hh,mm,ss=s.split(":")
-                    sec=float(hh)*3600+float(mm)*60+float(ss)
-                    prog=65+int(min(1.0,sec/690.275)*33)
-                    if prog>lastp:
-                        STATUS["progress"]=prog
-                        lastp=prog
-                except Exception:
-                    pass
-        rc=p.wait()
-        if rc!=0 or not os.path.exists(OUT):
-            raise RuntimeError("FFmpeg render failed: "+" | ".join(tail[-8:]))
+        STATUS.update(progress=65,message="Rendering native 1080p in RAM-safe chunks with permanent galaxy background")
+        chunk_dir=os.path.join(BASE,"chunks")
+        os.makedirs(chunk_dir,exist_ok=True)
+        chunk_paths=[]
+        chunk_size=5
+
+        # Render only a few shots per FFmpeg process. Each process exits before the
+        # next one starts, returning scaler/overlay/x264 native allocations to the OS.
+        # This preserves true 1920x1080 composition while staying below Render Free RAM.
+        for chunk_no,start in enumerate(range(0,99,chunk_size),1):
+            end=min(99,start+chunk_size)
+            cconcat=os.path.join(BASE,f"chunk_{chunk_no:02d}.txt")
+            with open(cconcat,"w") as cf:
+                for i in range(start,end):
+                    dur=max(.12,TIMES[i+1]-TIMES[i])
+                    cf.write(f"file '{fgdir}/{i+1:03d}.png'\\n")
+                    cf.write(f"duration {dur:.6f}\\n")
+                cf.write(f"file '{fgdir}/{end:03d}.png'\\n")
+
+            cpath=os.path.join(chunk_dir,f"chunk_{chunk_no:02d}.mp4")
+            cdur=max(.12,TIMES[end]-TIMES[start])
+            cmd=[
+                ffmpeg,"-y","-nostats","-loglevel","error",
+                "-stream_loop","-1","-i",gal,
+                "-f","concat","-safe","0","-i",cconcat,
+                "-filter_complex",
+                "[0:v]scale=1920:1080:force_original_aspect_ratio=increase:flags=bilinear,"
+                "crop=1920:1080,eq=brightness=-0.18:saturation=0.86,format=yuv420p[bg];"
+                "[1:v]scale=1200:-2:flags=lanczos,format=yuva420p[fg];"
+                "[bg][fg]overlay=(W-w)/2:(H-h)/2:format=yuv420,format=yuv420p[v]",
+                "-map","[v]","-an",
+                "-t",f"{cdur:.6f}","-r","24",
+                "-filter_complex_threads","1","-threads","1",
+                "-c:v","libx264","-preset","ultrafast","-tune","zerolatency",
+                "-crf","16","-pix_fmt","yuv420p",
+                "-bf","0","-refs","1","-g","48",
+                "-x264-params","threads=1:lookahead_threads=1:rc-lookahead=0:sync-lookahead=0:sliced-threads=1",
+                "-movflags","+faststart",cpath
+            ]
+            proc=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
+            if proc.returncode!=0 or not os.path.exists(cpath):
+                raise RuntimeError(f"1080p chunk {chunk_no} failed: {proc.stdout[-2500:]}")
+            chunk_paths.append(cpath)
+            STATUS["progress"]=65+int((chunk_no/((99+chunk_size-1)//chunk_size))*28)
+            STATUS["message"]=f"Rendered 1080p chunk {chunk_no}/{(99+chunk_size-1)//chunk_size}"
+            gc.collect()
+
+        STATUS.update(progress=94,message="Joining 1080p chunks without re-encoding")
+        chunk_list=os.path.join(BASE,"chunks.txt")
+        with open(chunk_list,"w") as lf:
+            for cp in chunk_paths:
+                lf.write(f"file '{cp}'\\n")
+        video_only=os.path.join(BASE,"video_1080p.mp4")
+        join_cmd=[ffmpeg,"-y","-f","concat","-safe","0","-i",chunk_list,
+                  "-c","copy","-movflags","+faststart",video_only]
+        proc=subprocess.run(join_cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
+        if proc.returncode!=0 or not os.path.exists(video_only):
+            raise RuntimeError("Chunk join failed: "+proc.stdout[-2500:])
+
+        STATUS.update(progress=97,message="Adding original narration to finished 1080p video")
+        mux_cmd=[ffmpeg,"-y","-i",video_only,"-i",aud,
+                 "-map","0:v:0","-map","1:a:0","-c:v","copy",
+                 "-c:a","aac","-b:a","192k","-shortest","-movflags","+faststart",OUT]
+        proc=subprocess.run(mux_cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
+        if proc.returncode!=0 or not os.path.exists(OUT):
+            raise RuntimeError("Final narration mux failed: "+proc.stdout[-2500:])
+
         STATUS.update(state="done",progress=100,message="Chapter 1-5 1080p recap ready")
     except Exception as e:
         STATUS.update(state="error",progress=0,message=str(e),trace=traceback.format_exc()[-4000:])
