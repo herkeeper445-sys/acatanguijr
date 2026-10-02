@@ -281,6 +281,22 @@ def monitor_status():
         print("AEVRILO_STATUS", STATUS, flush=True)
         time.sleep(10)
 
+def keep_alive():
+    # Render Free web services can spin down after inactivity even while a background
+    # render thread is busy. Periodically hit the public status endpoint so this
+    # long FFmpeg job can finish in one run.
+    url=os.environ.get("RENDER_EXTERNAL_URL","").rstrip("/")
+    if not url:
+        url="https://aevrilo-ch1-5-render.onrender.com"
+    time.sleep(120)
+    while STATUS.get("state") in ("starting","working"):
+        try:
+            requests.get(url+"/status",timeout=20)
+        except Exception:
+            pass
+        time.sleep(240)
+
 threading.Thread(target=monitor_status,daemon=True).start()
+threading.Thread(target=keep_alive,daemon=True).start()
 threading.Thread(target=render_worker,daemon=True).start()
 app.run(host="0.0.0.0",port=int(os.environ.get("PORT","10000")))
