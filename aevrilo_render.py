@@ -100,68 +100,123 @@ def panel_to_canvas(panel,path):
 
 def render_worker():
     try:
-        STATUS.update(state="working",progress=2,message="Preparing native Chapter 1-5 panels")
-        needed={ch:set() for ch in range(1,6)}
-        for ch,p,f in SHOTS:
-            if isinstance(p,tuple): needed[ch].update(p)
-            else: needed[ch].add(p)
-        panel_cache={}
+        import gc, imageio_ffmpeg
+        STATUS.update(state="working",progress=2,message="Preparing Chapter 1-5 source panels")
+        fgdir=os.path.join(BASE,"fg")
+        os.makedirs(fgdir,exist_ok=True)
+
+        # Index shots by chapter, preserving final output order.
+        by_ch={ch:[] for ch in range(1,6)}
+        for idx,(ch,p,focus) in enumerate(SHOTS,1):
+            by_ch[ch].append((idx,p,focus))
+
+        # Process ONE PDF and ONE/Few images at a time. Never cache all chapter pages.
         for ch in range(1,6):
             pdf=os.path.join(BASE,f"ch{ch}.pdf")
-            STATUS.update(progress=3+ch*4,message=f"Downloading Chapter {ch}")
+            STATUS.update(progress=3+ch*5,message=f"Downloading Chapter {ch}")
             dl(URLS[ch],pdf)
+            STATUS.update(progress=5+ch*5,message=f"Extracting Chapter {ch} native panels")
             doc=fitz.open(pdf)
-            for p in sorted(needed[ch]):
-                panel_cache[(ch,p)]=extract_page_image(doc,p)
+
+            for idx,p,focus in by_ch[ch]:
+                if isinstance(p,tuple):
+                    # Load only the two continuation pages needed for this shot.
+                    a=extract_page_image(doc,p[0])
+                    b=extract_page_image(doc,p[1])
+                    if ch==1 and p==(3,4):
+                        ca=a.crop((0,int(a.height*.68),a.width,a.height))
+                        cb=b.crop((0,0,b.width,int(b.height*.32)))
+                    elif ch==1 and p==(13,14):
+                        ca=a.crop((0,int(a.height*.62),a.width,a.height))
+                        cb=b.crop((0,0,b.width,int(b.height*.36)))
+                    else:
+                        ca=a.crop((0,int(a.height*.66),a.width,a.height))
+                        cb=b.crop((0,0,b.width,int(b.height*.38)))
+                    W=max(ca.width,cb.width)
+                    comb=Image.new("RGB",(W,ca.height+cb.height),"white")
+                    comb.paste(ca,((W-ca.width)//2,0))
+                    comb.paste(cb,((W-cb.width)//2,ca.height))
+                    panel=crop_window(comb,.5,.72)
+                    del a,b,ca,cb,comb
+                else:
+                    src=extract_page_image(doc,p)
+                    panel=crop_window(src,focus,.72)
+                    del src
+
+                # Use a smaller transparent overlay canvas to cut RAM substantially.
+                panel=panel.convert("RGB")
+                maxw,maxh=1120,900
+                scale=min(maxw/panel.width,maxh/panel.height,1.25)
+                nw=max(2,int(panel.width*scale)); nh=max(2,int(panel.height*scale))
+                panel=panel.resize((nw,nh),Image.Resampling.LANCZOS)
+                panel=ImageEnhance.Sharpness(panel).enhance(1.06)
+                canv=Image.new("RGBA",(1200,960),(0,0,0,0))
+                x=(1200-nw)//2; y=(960-nh)//2
+                sh=Image.new("RGBA",(nw,nh),(0,0,0,145))
+                canv.alpha_composite(sh,(x+8,y+8))
+                canv.alpha_composite(panel.convert("RGBA"),(x,y))
+                canv.save(os.path.join(fgdir,f"{idx:03d}.png"),compress_level=6)
+                del panel,canv,sh
+                gc.collect()
+
             doc.close()
             os.remove(pdf)
-
-        STATUS.update(progress=26,message="Building clean static panels")
-        fgdir=os.path.join(BASE,"fg"); os.makedirs(fgdir,exist_ok=True)
-        for idx,(ch,p,focus) in enumerate(SHOTS,1):
-            if isinstance(p,tuple):
-                a=panel_cache[(ch,p[0])]; b=panel_cache[(ch,p[1])]
-                if ch==1 and p==(3,4):
-                    ca=a.crop((0,int(a.height*.68),a.width,a.height)); cb=b.crop((0,0,b.width,int(b.height*.32)))
-                elif ch==1 and p==(13,14):
-                    ca=a.crop((0,int(a.height*.62),a.width,a.height)); cb=b.crop((0,0,b.width,int(b.height*.36)))
-                else:
-                    ca=a.crop((0,int(a.height*.66),a.width,a.height)); cb=b.crop((0,0,b.width,int(b.height*.38)))
-                W=max(ca.width,cb.width)
-                comb=Image.new("RGB",(W,ca.height+cb.height),"white")
-                comb.paste(ca,((W-ca.width)//2,0)); comb.paste(cb,((W-cb.width)//2,ca.height))
-                panel=crop_window(comb,.5,.72)
-            else:
-                panel=crop_window(panel_cache[(ch,p)],focus,.72)
-            panel_to_canvas(panel,os.path.join(fgdir,f"{idx:03d}.png"))
-            if idx%10==0: STATUS["progress"]=26+int(idx/99*34)
+            gc.collect()
+            STATUS["progress"]=20+ch*8
 
         concat=os.path.join(BASE,"panels.txt")
-        with open(concat,"w") as f:
+        with open(concat,"w") as ftxt:
             for i in range(99):
                 dur=max(.12,TIMES[i+1]-TIMES[i])
-                f.write(f"file '{fgdir}/{i+1:03d}.png'\n")
-                f.write(f"duration {dur:.6f}\n")
-            f.write(f"file '{fgdir}/099.png'\n")
+                ftxt.write(f"file '{fgdir}/{i+1:03d}.png'\\n")
+                ftxt.write(f"duration {dur:.6f}\\n")
+            ftxt.write(f"file '{fgdir}/099.png'\\n")
 
-        import imageio_ffmpeg
         ffmpeg=imageio_ffmpeg.get_ffmpeg_exe()
-        STATUS.update(progress=62,message="Downloading permanent galaxy background and narration")
-        gal=os.path.join(BASE,"galaxy.mp4"); aud=os.path.join(BASE,"narration.wav")
-        dl(URLS["galaxy"],gal); dl(URLS["audio"],aud)
+        STATUS.update(progress=62,message="Downloading permanent galaxy background")
+        gal=os.path.join(BASE,"galaxy.mp4")
+        dl(URLS["galaxy"],gal)
 
-        STATUS.update(progress=70,message="Rendering 1080p video")
-        cmd=[ffmpeg,"-y","-stream_loop","-1","-i",gal,"-f","concat","-safe","0","-i",concat,"-i",aud,
-             "-filter_complex","[0:v]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,boxblur=2:1,eq=brightness=-0.20:saturation=0.82[bg];[1:v]format=rgba[fg];[bg][fg]overlay=0:0:format=auto[v]",
-             "-map","[v]","-map","2:a:0","-t","690.275","-r","24","-c:v","libx264","-preset","medium","-crf","17","-pix_fmt","yuv420p","-c:a","aac","-b:a","192k","-movflags","+faststart",OUT]
-        p=subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
+        STATUS.update(progress=66,message="Downloading original narration")
+        aud=os.path.join(BASE,"narration.wav")
+        dl(URLS["audio"],aud)
+
+        STATUS.update(progress=72,message="Rendering Chapter 1-5 at 1080p")
+        cmd=[
+            ffmpeg,"-y",
+            "-stream_loop","-1","-i",gal,
+            "-f","concat","-safe","0","-i",concat,
+            "-i",aud,
+            "-filter_complex",
+            "[0:v]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,boxblur=2:1,eq=brightness=-0.20:saturation=0.82[bg];"
+            "[1:v]format=rgba[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2:format=auto[v]",
+            "-map","[v]","-map","2:a:0",
+            "-t","690.275","-r","24",
+            "-c:v","libx264","-preset","fast","-crf","17","-pix_fmt","yuv420p",
+            "-c:a","aac","-b:a","192k",
+            "-movflags","+faststart",OUT
+        ]
+        p=subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,bufsize=1)
+        lastp=72
         for line in p.stdout:
-            if "time=" in line: STATUS["progress"]=min(98,STATUS["progress"]+1)
+            if "time=" in line:
+                # lightweight progress estimate from ffmpeg time=HH:MM:SS.xx
+                try:
+                    s=line.split("time=")[1].split()[0]
+                    hh,mm,ss=s.split(":")
+                    sec=float(hh)*3600+float(mm)*60+float(ss)
+                    prog=72+int(min(1.0,sec/690.275)*26)
+                    if prog>lastp:
+                        STATUS["progress"]=prog
+                        lastp=prog
+                except Exception:
+                    pass
         rc=p.wait()
-        if rc!=0 or not os.path.exists(OUT): raise RuntimeError("FFmpeg render failed")
+        if rc!=0 or not os.path.exists(OUT):
+            raise RuntimeError("FFmpeg render failed")
         STATUS.update(state="done",progress=100,message="Chapter 1-5 1080p recap ready")
     except Exception as e:
-        STATUS.update(state="error",message=str(e),trace=traceback.format_exc()[-4000:])
+        STATUS.update(state="error",progress=0,message=str(e),trace=traceback.format_exc()[-4000:])
 
 app=Flask(__name__)
 @app.get("/")
