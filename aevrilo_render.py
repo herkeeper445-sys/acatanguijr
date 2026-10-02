@@ -194,19 +194,20 @@ def render_worker():
         aud=os.path.join(BASE,"narration.wav")
         dl(URLS["audio"],aud)
 
-        STATUS.update(progress=65,message="Rendering with the permanent galaxy background")
+        STATUS.update(progress=65,message="Rendering 1080p with low-memory encoder and permanent galaxy background")
         cmd=[
             ffmpeg,"-y",
             "-stream_loop","-1","-i",gal,
             "-f","concat","-safe","0","-i",concat,
             "-i",aud,
             "-filter_complex",
-            "[0:v]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,eq=brightness=-0.18:saturation=0.86[bg];"
-            "[1:v]format=rgba[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2:format=auto[v]",
+            "[0:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,eq=brightness=-0.18:saturation=0.86[bgsmall];"
+            "[1:v]scale=1000:-2:flags=lanczos,format=rgba[fgsmall];"
+            "[bgsmall][fgsmall]overlay=(W-w)/2:(H-h)/2:format=auto,scale=1920:1080:flags=lanczos[v]",
             "-map","[v]","-map","2:a:0",
             "-t","690.275","-r","24",
             "-filter_threads","1","-threads","1",
-            "-c:v","libx264","-preset","veryfast","-crf","17","-pix_fmt","yuv420p",
+            "-c:v","libx264","-preset","ultrafast","-crf","16","-pix_fmt","yuv420p","-x264-params","threads=1:lookahead_threads=1:rc-lookahead=0:sync-lookahead=0:sliced-threads=1",
             "-c:a","aac","-b:a","192k",
             "-movflags","+faststart",OUT
         ]
