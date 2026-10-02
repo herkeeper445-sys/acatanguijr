@@ -243,7 +243,7 @@ def render_worker():
             "-an","-threads","1","-c:v","libx264","-preset","ultrafast","-crf","24",
             "-bf","0","-refs","1","-g","48",
             "-x264-params","threads=1:lookahead_threads=1:rc-lookahead=0:sync-lookahead=0:sliced-threads=1",
-            "-movflags","+faststart",gal1080
+            gal1080
         ]
         proc=subprocess.run(bg_cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
         if proc.returncode!=0 or not os.path.exists(gal1080):
@@ -286,7 +286,7 @@ def render_worker():
                 "-crf","16","-pix_fmt","yuv420p",
                 "-bf","0","-refs","1","-g","48",
                 "-x264-params","threads=1:lookahead_threads=1:rc-lookahead=0:sync-lookahead=0:sliced-threads=1",
-                "-movflags","+faststart",cpath
+                cpath
             ]
             proc=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
             if proc.returncode!=0 or not os.path.exists(cpath):
@@ -303,7 +303,7 @@ def render_worker():
                 lf.write(f"file '{cp}'\n")
         video_only=os.path.join(BASE,"video_1080p.mp4")
         join_cmd=[ffmpeg,"-y","-f","concat","-safe","0","-i",chunk_list,
-                  "-c","copy","-movflags","+faststart",video_only]
+                  "-c","copy",video_only]
         proc=subprocess.run(join_cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
         if proc.returncode!=0 or not os.path.exists(video_only):
             raise RuntimeError("Chunk join failed: "+proc.stdout[-2500:])
@@ -311,7 +311,7 @@ def render_worker():
         STATUS.update(progress=97,message="Adding original narration to finished 1080p video")
         mux_cmd=[ffmpeg,"-y","-i",video_only,"-i",aud,
                  "-map","0:v:0","-map","1:a:0","-c:v","copy",
-                 "-c:a","aac","-b:a","192k","-shortest","-movflags","+faststart",OUT]
+                 "-c:a","aac","-b:a","192k","-shortest",OUT]
         proc=subprocess.run(mux_cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
         if proc.returncode!=0 or not os.path.exists(OUT):
             raise RuntimeError("Final narration mux failed: "+proc.stdout[-2500:])
