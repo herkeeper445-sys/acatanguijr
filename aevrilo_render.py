@@ -162,11 +162,10 @@ def render_worker():
             dl(URLS[ch],pdf)
 
             STATUS.update(progress=5+ch*5,message=f"Extracting Chapter {ch} native panels")
-            proc=multiprocessing.Process(target=process_chapter_worker,args=(ch,pdf,fgdir))
-            proc.start()
-            proc.join()
-            if proc.exitcode!=0:
-                raise RuntimeError(f"Chapter {ch} panel extraction failed with exit code {proc.exitcode}")
+            proc=subprocess.run([os.sys.executable,"aevrilo_chapter.py",str(ch),pdf,fgdir],
+                                stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
+            if proc.returncode!=0:
+                raise RuntimeError(f"Chapter {ch} panel extraction failed: {proc.stdout[-2500:]}")
             os.remove(pdf)
             gc.collect()
             STATUS["progress"]=20+ch*8
