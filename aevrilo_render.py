@@ -179,9 +179,9 @@ def render_worker():
         with open(concat,"w") as ftxt:
             for i in range(99):
                 dur=max(.12,TIMES[i+1]-TIMES[i])
-                ftxt.write(f"file '{fgdir}/{i+1:03d}.png'\\n")
-                ftxt.write(f"duration {dur:.6f}\\n")
-            ftxt.write(f"file '{fgdir}/099.png'\\n")
+                ftxt.write(f"file '{fgdir}/{i+1:03d}.png'\n")
+                ftxt.write(f"duration {dur:.6f}\n")
+            ftxt.write(f"file '{fgdir}/099.png'\n")
 
         ffmpeg=imageio_ffmpeg.get_ffmpeg_exe()
 
