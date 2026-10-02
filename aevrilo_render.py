@@ -29,7 +29,42 @@ SHOTS=[
 (5,4,.5),(5,8,.5),(5,9,.5),(5,10,.5),(5,12,.5),(5,14,.5),(5,15,.5),(5,16,.5),(5,17,.5),(5,19,.5),(5,21,.5),(5,24,.5),(5,28,.5),(5,28,.62),(5,30,.5),(5,33,.5),(5,37,.5),(5,41,.5),(5,41,.72),(5,42,.5),(5,44,.5),(5,45,.5),(5,46,.5),(5,47,.5),(5,48,.5)
 ]
 
-anchors={1:0.0,9:23.78,16:88.02,19:115.30,23:140.12,24:153.88,31:205.96,34:230.80,37:270.86,41:300.22,43:315.46,46:321.46,49:340.44,54:407.74,62:433.74,66:459.52,74:493.38,76:511.66,81:540.88,85:575.88,92:609.28,93:611.08,94:613.48,97:641.68,98:646.54,99:655.0,100:690.275}
+# Hard narration-to-visual sync points from the user's actual 690.275s narrator track.
+# Each key is the shot that MUST begin when that named character/event is spoken.
+SEMANTIC_CUES={
+    1:(0.00,"betrayal / poisoning opening"),
+    5:(9.76,"Alex Morgan, Suzuki Endo, Isabella and Hex Hood"),
+    9:(24.12,"Suzuki poison affecting Suho"),
+    10:(29.34,"Isabella the healer"),
+    13:(61.10,"Suho attacks"),
+    16:(88.28,"Intangible Sword"),
+    19:(115.66,"player Suho rebooting"),
+    23:(140.82,"Sindorim dungeon break"),
+    24:(153.96,"returned to the past"),
+    31:(206.14,"awakening conditions fulfilled"),
+    34:(231.12,"chooses Healer"),
+    37:(271.08,"Healing Light"),
+    41:(300.40,"Beginner Sword"),
+    43:(315.70,"abnormal gate"),
+    46:(321.58,"Green Red Gate"),
+    49:(340.78,"Hobgoblins"),
+    54:(407.58,"Dodge / Parry / sword techniques"),
+    62:(433.84,"Magic Stones"),
+    66:(459.46,"Hobgoblin horde"),
+    74:(493.46,"Chief Hobgoblin"),
+    76:(512.02,"Fear"),
+    81:(541.60,"Pain"),
+    85:(576.36,"Healing Light during boss fight"),
+    92:(609.52,"Diagonal Slash"),
+    93:(611.60,"Horizontal Slash"),
+    94:(613.70,"Stab"),
+    95:(614.96,"Basic Swordsmanship"),
+    97:(641.92,"Intimidation"),
+    98:(647.18,"final attack on Chief Hobgoblin"),
+    99:(655.20,"gate conquered"),
+    100:(690.275,"narration end"),
+}
+anchors={k:v[0] for k,v in SEMANTIC_CUES.items()}
 
 def make_times():
     times=[0.0]*100
@@ -194,11 +229,32 @@ def render_worker():
         aud=os.path.join(BASE,"narration.wav")
         dl(URLS["audio"],aud)
 
-        STATUS.update(progress=65,message="Rendering native 1080p in RAM-safe chunks with permanent galaxy background")
+        # Pre-normalize the long 4K/60fps galaxy source once. Rendering every chunk
+        # directly from the original background was the remaining memory spike on Render Free.
+        # This keeps the final composition 1920x1080 while greatly reducing per-chunk RAM.
+        STATUS.update(progress=64,message="Preparing low-memory 1080p galaxy master")
+        gal1080=os.path.join(BASE,"galaxy_1080p.mp4")
+        bg_cmd=[
+            ffmpeg,"-y","-nostats","-loglevel","error",
+            "-stream_loop","-1","-i",gal1080,
+            "-t",f"{TIMES[-1]:.3f}",
+            "-vf","scale=1920:1080:force_original_aspect_ratio=increase:flags=fast_bilinear,"
+                  "crop=1920:1080,fps=24,eq=brightness=-0.18:saturation=0.86,format=yuv420p",
+            "-an","-threads","1","-c:v","libx264","-preset","ultrafast","-crf","24",
+            "-bf","0","-refs","1","-g","48",
+            "-x264-params","threads=1:lookahead_threads=1:rc-lookahead=0:sync-lookahead=0:sliced-threads=1",
+            "-movflags","+faststart",gal1080
+        ]
+        proc=subprocess.run(bg_cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
+        if proc.returncode!=0 or not os.path.exists(gal1080):
+            raise RuntimeError("Galaxy 1080p preparation failed: "+proc.stdout[-2500:])
+
+        STATUS.update(progress=65,message="Rendering narration-synced 1080p chunks with permanent galaxy background")
         chunk_dir=os.path.join(BASE,"chunks")
         os.makedirs(chunk_dir,exist_ok=True)
         chunk_paths=[]
-        chunk_size=5
+        # Smaller chunks reduce native FFmpeg allocations and make the 512 MB service safer.
+        chunk_size=3
 
         # Render only a few shots per FFmpeg process. Each process exits before the
         # next one starts, returning scaler/overlay/x264 native allocations to the OS.
@@ -220,9 +276,8 @@ def render_worker():
                 "-stream_loop","-1","-i",gal,
                 "-f","concat","-safe","0","-i",cconcat,
                 "-filter_complex",
-                "[0:v]scale=1920:1080:force_original_aspect_ratio=increase:flags=bilinear,"
-                "crop=1920:1080,eq=brightness=-0.18:saturation=0.86,format=yuv420p[bg];"
-                "[1:v]scale=1200:-2:flags=lanczos,format=yuva420p[fg];"
+                "[0:v]format=yuv420p[bg];"
+                "[1:v]format=yuva420p[fg];"
                 "[bg][fg]overlay=(W-w)/2:(H-h)/2:format=yuv420,format=yuv420p[v]",
                 "-map","[v]","-an",
                 "-t",f"{cdur:.6f}","-r","24",
