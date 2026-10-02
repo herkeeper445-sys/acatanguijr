@@ -237,6 +237,7 @@ def render_worker():
         bg_cmd=[
             ffmpeg,"-y","-nostats","-loglevel","error",
             "-i",gal,
+            "-t","30",
             "-vf","scale=1920:1080:force_original_aspect_ratio=increase:flags=fast_bilinear,"
                   "crop=1920:1080,fps=24,eq=brightness=-0.18:saturation=0.86,format=yuv420p",
             "-an","-threads","1","-c:v","libx264","-preset","ultrafast","-crf","24",
